@@ -5,8 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import SplashScreen from "./screens/SplashScreen";
 import WelcomeScreen from "./screens/WelcomeScreen";
-import RoleSelectionScreen from "./screens/RoleSelectionScreen";
-import RoleLoginScreen from "./screens/RoleLoginScreen";
+import GeneralLoginScreen from "./screens/GeneralLoginScreen";
 import RoleRegisterScreen from "./screens/RoleRegisterScreen";
 import HomeScreen from "./screens/HomeScreen";
 
@@ -19,15 +18,17 @@ export default function App() {
         initialRouteName="Splash"
         screenOptions={{ headerShown: false }}
       >
+        {/* Step 1: Splash */}
         <Stack.Screen name="Splash" component={SplashScreen} />
+
+        {/* Step 2: Welcome */}
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
 
-        {/* use "RoleSelection" as the route name used across screens */}
-        <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
-
-        <Stack.Screen name="RoleLogin" component={RoleLoginScreen} />
+        {/* Step 3: Login & Register */}
+        <Stack.Screen name="GeneralLogin" component={GeneralLoginScreen} />
         <Stack.Screen name="RoleRegister" component={RoleRegisterScreen} />
 
+        {/* Step 4: Home */}
         <Stack.Screen name="Home" component={HomeScreen} />
       </Stack.Navigator>
     </NavigationContainer>
