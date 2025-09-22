@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -20,7 +21,6 @@ const productData = [
   { img: require("../assets/product3.jpg"), name: "Soyabeans", price: 10000 },
   { img: require("../assets/product4.jpg"), name: "Phones", price: 25000 },
   { img: require("../assets/product5.jpg"), name: "Crocs", price: 15000 },
-  
 ];
 
 export default function BuyerHomeScreen() {
@@ -28,6 +28,7 @@ export default function BuyerHomeScreen() {
   const [loggedIn, setLoggedIn] = useState(true);
   const [cartCount, setCartCount] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [likes, setLikes] = useState(productData.map(() => 0));
   const scrollRef = useRef(null);
 
   const user = { name: "Madzman Kapopo", profilePic: null };
@@ -36,7 +37,6 @@ export default function BuyerHomeScreen() {
   const categories = ["Clothes", "Shoes", "Electronics", "Food", "Beauty"];
   const recentlyViewed = [0, 1, 2, 3];
 
-  // Auto-slide carousel
   useEffect(() => {
     const interval = setInterval(() => {
       const next = (currentSlide + 1) % productData.length;
@@ -46,17 +46,26 @@ export default function BuyerHomeScreen() {
     return () => clearInterval(interval);
   }, [currentSlide]);
 
-  const handleBuy = (product) => {
+  const handleBuy = (index) => {
     setCartCount(cartCount + 1);
-    Alert.alert("Added to Cart", `${product.name} has been added to your cart.`);
+    Alert.alert(
+      "Added to Cart",
+      `${productData[index].name} has been added to your cart.`
+    );
   };
 
-  const handleViewProduct = (product) => {
-    Alert.alert("Product Details", `Viewing details for ${product.name}.`);
+  const handleViewProduct = (index) => {
+    Alert.alert("Product Details", `Viewing details for ${productData[index].name}.`);
   };
 
   const handleCategoryPress = (category) => {
     Alert.alert("Category Selected", `You selected ${category}.`);
+  };
+
+  const handleLike = (index) => {
+    const updated = [...likes];
+    updated[index] += 1;
+    setLikes(updated);
   };
 
   if (!loggedIn) {
@@ -69,6 +78,38 @@ export default function BuyerHomeScreen() {
       </View>
     );
   }
+
+  const renderProduct = ({ item, index }) => (
+    <View style={styles.masonryCard}>
+      <View style={{ position: "relative" }}>
+        <Image source={item.img} style={styles.masonryImage} />
+        {/* Price Top Left */}
+        <View style={styles.priceBadge}>
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>MK {item.price}</Text>
+        </View>
+        {/* Buttons Bottom Right */}
+        <View style={styles.bottomButtons}>
+          <TouchableOpacity onPress={() => handleBuy(index)}>
+            <Text style={styles.overlayBtn}>Add to Cart</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleViewProduct(index)}>
+            <Text style={styles.overlayBtn}>View</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      {/* Footer */}
+      <View style={styles.cardFooter}>
+        <Text style={styles.gridTitle}>{item.name}</Text>
+        <View style={styles.footerRight}>
+          <TouchableOpacity style={styles.heartRow} onPress={() => handleLike(index)}>
+            <Ionicons name="heart" size={16} color="red" />
+            <Text style={{ marginLeft: 3, fontSize: 12 }}>{likes[index]}</Text>
+          </TouchableOpacity>
+          <Ionicons name="ellipsis-vertical" size={16} color="#333" />
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -112,10 +153,22 @@ export default function BuyerHomeScreen() {
             pagingEnabled
             ref={scrollRef}
             showsHorizontalScrollIndicator={false}
-            scrollEnabled={false} // arrows control
+            scrollEnabled={false}
           >
             {productData.map((p, i) => (
-              <Image key={i} source={p.img} style={styles.carouselImage} />
+              <View key={i} style={styles.carouselSlide}>
+                <Image source={p.img} style={styles.carouselImage} />
+                <View style={styles.carouselOverlay}>
+                  <Text style={styles.carouselText}>{p.name}</Text>
+                  <Text style={styles.carouselPrice}>MK {p.price}</Text>
+                  <TouchableOpacity
+                    style={styles.shopNowBtn}
+                    onPress={() => handleViewProduct(i)}
+                  >
+                    <Text style={styles.shopNowText}>Shop Now</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             ))}
           </ScrollView>
 
@@ -128,7 +181,13 @@ export default function BuyerHomeScreen() {
 
           <View style={styles.carouselDots}>
             {productData.map((_, i) => (
-              <View key={i} style={[styles.dot, { backgroundColor: currentSlide === i ? "#ff6f00" : "#ccc" }]} />
+              <View
+                key={i}
+                style={[
+                  styles.dot,
+                  { backgroundColor: currentSlide === i ? "#ff6f00" : "#ccc" },
+                ]}
+              />
             ))}
           </View>
         </View>
@@ -138,7 +197,11 @@ export default function BuyerHomeScreen() {
           <Text style={styles.sectionTitle}>Shop by Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {categories.map((cat, i) => (
-              <TouchableOpacity key={i} style={styles.categoryCard} onPress={() => handleCategoryPress(cat)}>
+              <TouchableOpacity
+                key={i}
+                style={styles.categoryCard}
+                onPress={() => handleCategoryPress(cat)}
+              >
                 <Ionicons name="pricetag" size={24} color="#ff6f00" />
                 <Text style={styles.categoryText}>{cat}</Text>
               </TouchableOpacity>
@@ -146,67 +209,15 @@ export default function BuyerHomeScreen() {
           </ScrollView>
         </View>
 
-        {/* GRID PRODUCTS */}
-        <View style={styles.gridContainer}>
-          {productData.map((product, i) => (
-            <View key={i} style={styles.gridCard}>
-              <Image source={product.img} style={styles.gridImage} />
-              {i % 2 === 0 && (
-                <View style={styles.discountBadge}>
-                  <Text style={styles.badgeText}>Discount</Text>
-                </View>
-              )}
-              {i % 3 === 0 && (
-                <View style={[styles.newBadge, { top: 35 }]}>
-                  <Text style={styles.badgeText}>New</Text>
-                </View>
-              )}
-              <Text style={styles.gridTitle}>{product.name}</Text>
-              <View style={styles.starRow}>
-                {[...Array(5)].map((_, idx) => (
-                  <Ionicons
-                    key={idx}
-                    name={idx < 4 ? "star" : "star-half"}
-                    size={14}
-                    color="#FFD700"
-                  />
-                ))}
-                <Text style={{ marginLeft: 5, color: "gray", fontSize: 12 }}>50 sold</Text>
-              </View>
-              <Text style={styles.gridPrice}>MK {product.price}</Text>
-              <View style={styles.gridButtons}>
-                <TouchableOpacity style={styles.buyBtn} onPress={() => handleBuy(product)}>
-                  <Text style={{ color: "#fff", fontWeight: "600" }}>Add</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.buyBtn, { backgroundColor: "#333" }]}
-                  onPress={() => handleViewProduct(product)}
-                >
-                  <Text style={{ color: "#fff", fontWeight: "600" }}>View</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* RECENTLY VIEWED */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recently Viewed</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {recentlyViewed.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={styles.recentCard}
-                onPress={() => handleViewProduct(productData[item % productData.length])}
-              >
-                <Image source={productData[item % productData.length].img} style={styles.recentImage} />
-                <Text style={{ marginTop: 5, fontSize: 12 }}>
-                  {productData[item % productData.length].name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        {/* PINTEREST-LIKE PRODUCTS */}
+        <FlatList
+          data={productData}
+          renderItem={renderProduct}
+          keyExtractor={(_, index) => index.toString()}
+          numColumns={2}
+          columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 10 }}
+        />
       </ScrollView>
 
       {/* FLOATING CART */}
@@ -224,7 +235,11 @@ export default function BuyerHomeScreen() {
 
       {/* MENU */}
       <Modal transparent visible={menuVisible} animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)} />
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        />
         <View style={styles.menuContainer}>
           <Text style={styles.menuTitle}>Menu</Text>
           <TouchableOpacity style={styles.menuItem}>
@@ -240,11 +255,14 @@ export default function BuyerHomeScreen() {
             <Text style={styles.menuItemText}>Settings</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
-            <Text style={[styles.menuItemText, { color: "#ff6f00", fontWeight: "bold" }]}>
-              Switch to Seller
+            <Text style={{ color: "#ff6f00", fontWeight: "bold", fontSize: 16 }}>
+              Switch to Vendor
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => setLoggedIn(false)}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setLoggedIn(false)}
+          >
             <Text style={[styles.menuItemText, { color: "red" }]}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -267,31 +285,39 @@ const styles = StyleSheet.create({
   profilePic: { width: "100%", height: "100%", borderRadius: 20 },
   initialsText: { fontSize: 16, fontWeight: "bold", color: "#333" },
   userName: { fontSize: 16, color: "#333" },
-  carouselWrapper: { width, height: 180, marginBottom: 15, justifyContent: "center" },
-  carouselImage: { width, height: 180, resizeMode: "cover", borderRadius: 10 },
-  arrowLeft: { position: "absolute", left: 10, top: 70, zIndex: 2 },
-  arrowRight: { position: "absolute", right: 10, top: 70, zIndex: 2 },
-  carouselDots: { position: "absolute", bottom: 10, width: "100%", flexDirection: "row", justifyContent: "center" },
+
+  carouselWrapper: { width, height: 220, marginBottom: 15 },
+  carouselSlide: { width, height: 220 },
+  carouselImage: { width, height: 220, resizeMode: "cover" },
+  carouselOverlay: { position: "absolute", bottom: 15, left: 15, backgroundColor: "rgba(0,0,0,0.5)", padding: 10, borderRadius: 8 },
+  carouselText: { fontSize: 16, color: "#fff", fontWeight: "bold" },
+  carouselPrice: { fontSize: 14, color: "#ff6f00", marginVertical: 3 },
+  shopNowBtn: { backgroundColor: "#ff6f00", paddingVertical: 5, paddingHorizontal: 12, borderRadius: 5, marginTop: 5 },
+  shopNowText: { color: "#fff", fontWeight: "bold", fontSize: 12 },
+  arrowLeft: { position: "absolute", left: 10, top: "45%", zIndex: 2 },
+  arrowRight: { position: "absolute", right: 10, top: "45%", zIndex: 2 },
+  carouselDots: { position: "absolute", bottom: 5, width: "100%", flexDirection: "row", justifyContent: "center" },
   dot: { width: 8, height: 8, borderRadius: 4, marginHorizontal: 3 },
+
   section: { marginTop: 10, paddingHorizontal: 15 },
   sectionTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
   categoryCard: { alignItems: "center", marginRight: 15 },
   categoryText: { marginTop: 5, fontSize: 14, color: "#333" },
-  gridContainer: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", paddingHorizontal: 10 },
-  gridCard: { width: "48%", backgroundColor: "#fff", marginBottom: 10, borderRadius: 10, padding: 10, elevation: 2 },
-  gridImage: { width: "100%", height: 120, borderRadius: 10 },
-  gridTitle: { marginTop: 8, fontWeight: "bold", fontSize: 14, color: "#333" },
-  starRow: { flexDirection: "row", alignItems: "center", marginTop: 3 },
-  gridPrice: { marginTop: 5, fontWeight: "bold", fontSize: 14, color: "green" },
-  gridButtons: { flexDirection: "row", justifyContent: "space-between", marginTop: 5 },
-  buyBtn: { flex: 1, backgroundColor: "#ff6f00", padding: 6, borderRadius: 5, justifyContent: "center", alignItems: "center", marginRight: 5 },
-  discountBadge: { position: "absolute", top: 10, left: 10, backgroundColor: "red", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
-  newBadge: { position: "absolute", top: 10, left: 10, backgroundColor: "green", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
-  badgeText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
-  recentCard: { marginRight: 15, alignItems: "center" },
-  recentImage: { width: 80, height: 80, borderRadius: 10 },
+
+  masonryCard: { width: "48%", backgroundColor: "#fff", borderRadius: 10, elevation: 3, overflow: "hidden" },
+  masonryImage: { width: "100%", height: 180, borderRadius: 10, resizeMode: "cover" },
+  priceBadge: { position: "absolute", top: 5, left: 5, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
+  bottomButtons: { position: "absolute", bottom: 5, right: 5, flexDirection: "row" },
+  overlayBtn: { color: "#fff", fontWeight: "bold", marginLeft: 5, backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
+
+  cardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 5 },
+  footerRight: { flexDirection: "row", alignItems: "center" },
+  heartRow: { flexDirection: "row", alignItems: "center", marginRight: 8 },
+  gridTitle: { fontWeight: "bold", fontSize: 14, color: "#333" },
+
   floatingCart: { position: "absolute", bottom: 20, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: "#ff6f00", justifyContent: "center", alignItems: "center" },
   cartBadge: { position: "absolute", top: 5, right: 5, width: 20, height: 20, borderRadius: 10, backgroundColor: "red", justifyContent: "center", alignItems: "center" },
+
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
   menuContainer: { backgroundColor: "#fff", padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   menuTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 20 },
