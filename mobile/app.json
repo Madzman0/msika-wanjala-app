@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "e767c315-4bb2-4a40-ad12-2856c3036a2b"
+      }
+    },
+    "android": {
+      "package": "com.madzman.msikawanjalamobile"
+    }
+  }
+}
