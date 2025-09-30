@@ -71,6 +71,7 @@ const dashboardStats = [
 export default function HomeScreen({ navigation }) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false); // simulate auth
+  const [likes, setLikes] = useState({}); // Track likes for products
 
   const user = {
     name: "Madzman Kapopo",
@@ -83,8 +84,12 @@ export default function HomeScreen({ navigation }) {
     .join("")
     .toUpperCase();
 
-  // Toggle auth for demo (optional)
-  const handleAuthToggle = () => setIsLoggedIn(!isLoggedIn);
+  const handleLike = (productId) => {
+    setLikes((prevLikes) => ({
+      ...prevLikes,
+      [productId]: (prevLikes[productId] || 0) + 1,
+    }));
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -108,7 +113,7 @@ export default function HomeScreen({ navigation }) {
             ) : (
               <TouchableOpacity
                 style={styles.signInButton}
-                onPress={() => navigation.navigate("Login")}
+                onPress={() => navigation.navigate("LoginScreen")}
               >
                 <Text style={styles.signInText}>Sign In</Text>
               </TouchableOpacity>
@@ -136,7 +141,10 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.primaryButtonText}>Start Shopping</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.secondaryButton}>
+              <TouchableOpacity 
+                style={styles.secondaryButton}
+                onPress={() => navigation.navigate("GeneralLoginScreen")}
+              >
                 <Text style={styles.secondaryButtonText}>Become a Seller</Text>
               </TouchableOpacity>
             </>
@@ -167,7 +175,17 @@ export default function HomeScreen({ navigation }) {
               />
               <View style={styles.productHeader}>
                 <Text style={styles.productName}>{product.name}</Text>
-                <Ionicons name="heart-outline" size={26} color="#ff6f00" />
+                <TouchableOpacity
+                  onPress={() => handleLike(product.id)}
+                  style={{ flexDirection: "row", alignItems: "center" }}
+                >
+                  <Ionicons name="heart-outline" size={26} color="#ff6f00" />
+                  {likes[product.id] && (
+                    <Text style={{ marginLeft: 5, color: "#ff6f00" }}>
+                      {likes[product.id]}
+                    </Text>
+                  )}
+                </TouchableOpacity>
               </View>
               <Text style={styles.productPrice}>{product.price}</Text>
               <Text style={styles.productDesc}>{product.desc}</Text>
@@ -334,7 +352,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 15 },
   logoContainer: { flexDirection: "row", alignItems: "center" },
   logo: { width: 40, height: 40, marginRight: 8 },
-  appName: { fontSize: 20, fontWeight: "bold", color: "#ff6f00" },
+  appName: { fontSize: 16, fontWeight: "bold", color: "#ff6f00" },
   headerActions: { flexDirection: "row", alignItems: "center" },
   signInButton: { backgroundColor: "#ff6f00", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, marginRight: 10 },
   signInText: { color: "#fff", fontWeight: "bold" },

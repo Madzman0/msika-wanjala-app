@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -14,10 +15,9 @@ export default function GeneralLoginScreen({ navigation, setIsLoggedIn }) {
   const [password, setPassword] = useState("");
 
   const handleLogin = () => {
-    // 🔑 fake login for now
     if (email && password) {
-      setIsLoggedIn(true); // ✅ mark logged in
-      navigation.replace("BuyerHome"); // ✅ redirect to BuyerHome
+      setIsLoggedIn(true);
+      navigation.replace("BuyerHome");
     } else {
       alert("Please enter email and password");
     }
@@ -25,60 +25,69 @@ export default function GeneralLoginScreen({ navigation, setIsLoggedIn }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back</Text>
-      <Text style={styles.subtitle}>Login to continue</Text>
+      {/* Header Branding */}
+      <View style={styles.header}>
+        <Image source={require("../assets/logo.png")} style={styles.logo} />
+        <Text style={styles.appName}>Msika Wanjala</Text>
+        <Text style={styles.subtitle}>Welcome back! Please login to continue</Text>
+      </View>
 
-      {/* Email Input */}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#aaa"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
+      {/* Login Card */}
+      <View style={styles.card}>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#aaa"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
 
-      {/* Password Input */}
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#aaa"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      {/* Forgot Password Link */}
-      <TouchableOpacity onPress={() => alert("Forgot password flow here")}>
-        <Text style={styles.forgotText}>Forgot Password?</Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => alert("Forgot password flow here")}>
+          <Text style={styles.forgotText}>Forgot Password?</Text>
+        </TouchableOpacity>
 
-      {/* Login Button */}
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginText}>Login</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginText}>Login</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Text style={styles.orText}>or</Text>
+      <Text style={styles.orText}>or continue with</Text>
 
-      {/* Google Login */}
-      <TouchableOpacity style={styles.socialButton}>
+      {/* Social Buttons */}
+      <TouchableOpacity style={[styles.socialButton, { backgroundColor: "#db4437" }]}>
         <Ionicons name="logo-google" size={20} color="#fff" />
-        <Text style={styles.socialText}>Continue with Google</Text>
+        <Text style={styles.socialText}>Google</Text>
       </TouchableOpacity>
 
-      {/* Facebook Login */}
-      <TouchableOpacity
-        style={[styles.socialButton, { backgroundColor: "#1877f2" }]}
-      >
+      <TouchableOpacity style={[styles.socialButton, { backgroundColor: "#1877f2" }]}>
         <Ionicons name="logo-facebook" size={20} color="#fff" />
-        <Text style={styles.socialText}>Continue with Facebook</Text>
+        <Text style={styles.socialText}>Facebook</Text>
       </TouchableOpacity>
 
-      {/* Register Link */}
+      {/* Links */}
       <TouchableOpacity onPress={() => navigation.navigate("RoleRegister")}>
         <Text style={styles.registerText}>
           Don’t have an account?{" "}
-          <Text style={{ color: "#ff6f00" }}>Sign up</Text>
+          <Text style={{ color: "#ff6f00", fontWeight: "600" }}>Sign up</Text>
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate("VendorLogin")}>
+        <Text style={styles.vendorLoginText}>
+          Are you a Vendor?{" "}
+          <Text style={{ color: "#ff6f00", fontWeight: "600" }}>
+            Login as Vendor
+          </Text>
         </Text>
       </TouchableOpacity>
     </View>
@@ -86,62 +95,64 @@ export default function GeneralLoginScreen({ navigation, setIsLoggedIn }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+  container: { flex: 1, backgroundColor: "#fdfdfd", padding: 20, justifyContent: "center" },
+
+  header: { alignItems: "center", marginBottom: 20 },
+  logo: { width: 90, height: 90, resizeMode: "contain", marginBottom: 8 },
+  appName: { fontSize: 22, fontWeight: "bold", color: "#ff6f00" },
+  subtitle: { fontSize: 14, color: "#666", marginTop: 4, textAlign: "center" },
+
+  card: {
     backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    marginBottom: 16,
   },
-  title: { fontSize: 28, fontWeight: "bold", marginBottom: 8, color: "#222" },
-  subtitle: { fontSize: 16, color: "#666", marginBottom: 20 },
+
   input: {
-    width: "90%",
     backgroundColor: "#f5f5f5",
     padding: 12,
     borderRadius: 8,
     marginVertical: 8,
-    fontSize: 16,
+    fontSize: 15,
     color: "#333",
   },
+
   forgotText: {
     alignSelf: "flex-end",
-    marginRight: "6%",
-    marginTop: 4,
-    marginBottom: 12,
     color: "#ff6f00",
     fontWeight: "600",
     fontSize: 14,
+    marginVertical: 6,
   },
+
   loginButton: {
     backgroundColor: "#ff6f00",
     padding: 14,
     borderRadius: 8,
-    width: "90%",
     alignItems: "center",
-    marginVertical: 12,
+    marginTop: 10,
   },
-  loginText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  orText: { marginVertical: 10, color: "#666", fontSize: 14 },
+  loginText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+
+  orText: { textAlign: "center", color: "#666", marginVertical: 10, fontSize: 14 },
+
   socialButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#db4437", // Google Red
     padding: 12,
     borderRadius: 8,
     marginVertical: 6,
-    width: "90%",
     justifyContent: "center",
+    width: "100%",
   },
-  socialText: {
-    color: "#fff",
-    fontWeight: "bold",
-    marginLeft: 8,
-    fontSize: 15,
-  },
-  registerText: {
-    marginTop: 20,
-    fontSize: 14,
-    color: "#666",
-  },
+  socialText: { color: "#fff", fontWeight: "bold", marginLeft: 8, fontSize: 15 },
+
+  registerText: { marginTop: 20, fontSize: 14, color: "#666", textAlign: "center" },
+  vendorLoginText: { marginTop: 12, fontSize: 14, color: "#333", textAlign: "center" },
 });

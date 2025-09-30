@@ -1,3 +1,4 @@
+// screens/LoginScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,7 +15,19 @@ export default function LoginScreen({ navigation }) {
       const res = await login({ phone, password });
       const { token, user } = res.data;
       await AsyncStorage.setItem('token', token);
+
       Alert.alert('Welcome', `Logged in as ${user.name} (${user.role})`);
+
+      // Navigate based on role
+      if (user.role === 'buyer') {
+        navigation.replace('BuyerHome');
+      } else if (user.role === 'seller') {
+        navigation.replace('SellerHome');
+      } else if (user.role === 'transporter') {
+        navigation.replace('TransporterHome');
+      } else if (user.role === 'depot') {
+        navigation.replace('DepotHome');
+      }
     } catch (err) {
       console.error(err);
       Alert.alert('Login failed', err?.response?.data?.msg || 'Invalid credentials');
@@ -61,6 +74,10 @@ export default function LoginScreen({ navigation }) {
           style={theme.input}
         />
 
+        <TouchableOpacity style={theme.forgotPasswordButton} onPress={() => navigation.navigate('ForgotPassword')}>
+          <Text style={theme.forgotPasswordText}>Forgot Password?</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={theme.button} onPress={handleLogin}>
           <Text style={theme.buttonText}>Login</Text>
         </TouchableOpacity>
@@ -77,30 +94,34 @@ export default function LoginScreen({ navigation }) {
 const lightStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', padding: 20 },
   modeToggle: { position: 'absolute', top: 40, right: 20 },
-  header: { alignItems: 'center', marginBottom: 30 },
-  logo: { width: 100, height: 100, resizeMode: 'contain', marginBottom: 10 },
-  appName: { fontSize: 22, fontWeight: 'bold', color: '#ff6f00' },
-  form: { backgroundColor: '#f9f9f9', padding: 25, borderRadius: 10, elevation: 3 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#ff6f00' },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, marginBottom: 15, fontSize: 16 },
-  button: { backgroundColor: '#ff6f00', paddingVertical: 15, borderRadius: 8, marginTop: 10 },
-  buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 16 },
-  linkButton: { marginTop: 15 },
-  linkText: { textAlign: 'center', color: '#ff6f00', fontWeight: 'bold' },
+  header: { alignItems: 'center', marginBottom: 20 },
+  logo: { width: 80, height: 80, resizeMode: 'contain', marginBottom: 10 },
+  appName: { fontSize: 20, fontWeight: 'bold', color: '#ff6f00' },
+  form: { backgroundColor: '#f9f9f9', padding: 20, borderRadius: 10, elevation: 3, marginHorizontal: 10 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, textAlign: 'center', color: '#ff6f00' },
+  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 10, fontSize: 14 },
+  forgotPasswordButton: { alignSelf: 'flex-end', marginBottom: 15 },
+  forgotPasswordText: { color: '#ff6f00', fontSize: 14, fontWeight: 'bold', textAlign: 'right' },
+  button: { backgroundColor: '#ff6f00', paddingVertical: 12, borderRadius: 8, marginTop: 10 },
+  buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 14 },
+  linkButton: { marginTop: 10 },
+  linkText: { textAlign: 'center', color: '#ff6f00', fontWeight: 'bold', fontSize: 14 },
 });
 
 // DARK THEME
 const darkStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', padding: 20 },
   modeToggle: { position: 'absolute', top: 40, right: 20 },
-  header: { alignItems: 'center', marginBottom: 30 },
-  logo: { width: 100, height: 100, resizeMode: 'contain', marginBottom: 10, tintColor: '#fff' },
-  appName: { fontSize: 22, fontWeight: 'bold', color: '#ff6f00' },
-  form: { backgroundColor: '#1e1e1e', padding: 25, borderRadius: 10 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#ff6f00' },
-  input: { borderWidth: 1, borderColor: '#333', borderRadius: 8, padding: 12, marginBottom: 15, fontSize: 16, color: '#fff' },
-  button: { backgroundColor: '#ff6f00', paddingVertical: 15, borderRadius: 8, marginTop: 10 },
-  buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 16 },
-  linkButton: { marginTop: 15 },
-  linkText: { textAlign: 'center', color: '#ff9800', fontWeight: 'bold' },
+  header: { alignItems: 'center', marginBottom: 20 },
+  logo: { width: 80, height: 80, resizeMode: 'contain', marginBottom: 10, tintColor: '#fff' },
+  appName: { fontSize: 20, fontWeight: 'bold', color: '#ff6f00' },
+  form: { backgroundColor: '#1e1e1e', padding: 20, borderRadius: 10, marginHorizontal: 10 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, textAlign: 'center', color: '#ff6f00' },
+  input: { borderWidth: 1, borderColor: '#333', borderRadius: 8, padding: 10, marginBottom: 10, fontSize: 14, color: '#fff' },
+  forgotPasswordButton: { alignSelf: 'flex-end', marginBottom: 15 },
+  forgotPasswordText: { color: '#ff9800', fontSize: 14, fontWeight: 'bold', textAlign: 'right' },
+  button: { backgroundColor: '#ff6f00', paddingVertical: 12, borderRadius: 8, marginTop: 10 },
+  buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 14 },
+  linkButton: { marginTop: 10 },
+  linkText: { textAlign: 'center', color: '#ff9800', fontWeight: 'bold', fontSize: 14 },
 });

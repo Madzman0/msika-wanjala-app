@@ -11,6 +11,7 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient"; // Add gradient support
 
 // Store chat history per chatId
 const chatHistories = {};
@@ -70,12 +71,15 @@ export default function ChatScreen({ route, navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#fdfdfd" }}
+      style={{ flex: 1, backgroundColor: "#f8f9fa" }} // Updated background color
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={90}
     >
       {/* HEADER */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={["#ff6f00", "#ff8f00"]} // Gradient background
+        style={styles.header}
+      >
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 5 }}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
@@ -87,7 +91,7 @@ export default function ChatScreen({ route, navigation }) {
           <Text style={styles.chatTitle}>{chatName}</Text>
           <Text style={styles.status}>Online</Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* MESSAGES */}
       <FlatList
@@ -102,6 +106,7 @@ export default function ChatScreen({ route, navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Type a message"
+          placeholderTextColor="#aaa" // Updated placeholder color
           value={newMessage}
           onChangeText={setNewMessage}
         />
@@ -113,28 +118,36 @@ export default function ChatScreen({ route, navigation }) {
   );
 }
 
+// Updated styles
 const styles = StyleSheet.create({
   header: {
-    height: 65,
-    backgroundColor: "#ff6f00",
+    height: 70,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
     elevation: 4,
+    borderBottomLeftRadius: 10, // Rounded corners
+    borderBottomRightRadius: 10,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     marginLeft: 5,
+    backgroundColor: "#ddd", // Placeholder background
   },
-  chatTitle: { color: "#fff", fontSize: 17, fontWeight: "bold" },
-  status: { color: "#ffe0b2", fontSize: 12 },
+  chatTitle: { color: "#fff", fontSize: 18, fontWeight: "600" }, // Modern font weight
+  status: { color: "#ffe0b2", fontSize: 13 },
   chatBubble: {
     maxWidth: "75%",
-    padding: 10,
-    borderRadius: 16,
-    marginVertical: 4,
+    padding: 12,
+    borderRadius: 20,
+    marginVertical: 6,
+    shadowColor: "#000", // Subtle shadow
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   chatBubbleLeft: {
     alignSelf: "flex-start",
@@ -145,12 +158,12 @@ const styles = StyleSheet.create({
   },
   chatBubbleRight: {
     alignSelf: "flex-end",
-    backgroundColor: "#ffe0b2",
+    backgroundColor: "#ffcc80",
     borderTopRightRadius: 0,
   },
-  chatText: { fontSize: 15, color: "#000" },
+  chatText: { fontSize: 16, color: "#333" }, // Updated font size and color
   timeText: {
-    fontSize: 10,
+    fontSize: 11,
     color: "gray",
     alignSelf: "flex-end",
     marginTop: 2,
@@ -161,26 +174,38 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    padding: 6,
+    padding: 8,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#ddd",
+    shadowColor: "#000", // Subtle shadow
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 4,
   },
   input: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 20,
+    borderRadius: 25, // Rounded corners
     backgroundColor: "#f1f1f1",
     fontSize: 15,
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
   sendButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: "#ff6f00",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 6,
+    marginLeft: 8,
+    shadowColor: "#000", // Subtle shadow
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 4,
   },
 });

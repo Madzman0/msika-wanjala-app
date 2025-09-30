@@ -42,6 +42,19 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  // ✅ Delete a specific quantity of an item
+  const deleteFromCart = (id, qtyToDelete) => {
+    setCartItems((prevItems) =>
+      prevItems.flatMap((item) => {
+        if (item.id === id) {
+          const newQty = (item.qty || 1) - qtyToDelete;
+          return newQty > 0 ? { ...item, qty: newQty } : [];
+        }
+        return item;
+      })
+    );
+  };
+
   // ✅ Clear all items
   const clearCart = () => {
     setCartItems([]);
@@ -74,6 +87,7 @@ export const CartProvider = ({ children }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        deleteFromCart,
         clearCart,
         getTotalPrice,
         getTotalItems,

@@ -9,11 +9,13 @@ import {
   Dimensions,
   FlatList,
   TextInput,
+  Modal,
 } from "react-native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { CartContext } from "../context/CartContext";
 
 const { width } = Dimensions.get("window");
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 const productData = [
   { img: require("../assets/product1.jpg"), name: "Vegetables", price: 5000, category: "Food", supplier: "Green Farm Ltd", location: "Lilongwe" },
@@ -31,6 +33,7 @@ export default function BuyerHomeScreen({ navigation }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [likes, setLikes] = useState(productData.map(() => 0));
   const [searchText, setSearchText] = useState("");
+  const [searchLocation, setSearchLocation] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeTab, setActiveTab] = useState("Home");
   const scrollRef = useRef(null);
@@ -43,6 +46,12 @@ export default function BuyerHomeScreen({ navigation }) {
     { id: 1, name: "Green Farm Ltd", lastMessage: "Your vegetables arrived?", unread: 2 },
     { id: 2, name: "Harvest Co", lastMessage: "We have fresh crops available.", unread: 0 },
   ]);
+
+  const [productList, setProductList] = useState(productData);
+  const [productModalVisible, setProductModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [selectedProductForOptions, setSelectedProductForOptions] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -64,7 +73,15 @@ export default function BuyerHomeScreen({ navigation }) {
     }
   };
 
-  const handleViewProduct = (product) => setProductVisible(product);
+  const handleViewProduct = (product) => {
+    setSelectedProduct(product);
+    setProductModalVisible(true);
+  };
+
+  const closeProductModal = () => {
+    setProductModalVisible(false);
+    setSelectedProduct(null);
+  };
 
   const handleLike = (index) => {
     const updated = [...likes];
@@ -72,11 +89,37 @@ export default function BuyerHomeScreen({ navigation }) {
     setLikes(updated);
   };
 
-  const filteredProducts = productData.filter((p) => {
+  const handleOptionsPress = (product) => {
+    setSelectedProductForOptions(product);
+    setOptionsModalVisible(true);
+  };
+
+  const closeOptionsModal = () => {
+    setOptionsModalVisible(false);
+    setSelectedProductForOptions(null);
+  };
+
+  const filteredProducts = productList.filter((p) => {
     const matchesCategory = activeCategory === "All" || p.category === activeCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchText.toLowerCase());
-    return matchesCategory && matchesSearch;
+    const matchesLocation = p.location.toLowerCase().includes(searchLocation.toLowerCase());
+    return matchesCategory && matchesSearch && matchesLocation;
   });
+
+  const handleCategoryPress = (category) => {
+    setActiveCategory(category);
+    if (category === "All") {
+      setProductList(productData);
+    } else {
+      setProductList(productData.filter((p) => p.category === category));
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (activeCategory === "All") {
+      setProductList((prevList) => [...prevList, ...productData]);
+    }
+  };
 
   const renderProduct = ({ item, index }) => {
     const inCart = cartItems.some((cartItem) => cartItem.name === item.name);
@@ -103,7 +146,9 @@ export default function BuyerHomeScreen({ navigation }) {
               <Ionicons name="heart" size={16} color="red" />
               <Text style={{ marginLeft: 3, fontSize: 12 }}>{likes[index]}</Text>
             </TouchableOpacity>
-            <Ionicons name="ellipsis-vertical" size={16} color="#fff" />
+            <TouchableOpacity onPress={() => handleOptionsPress(item)}>
+              <Ionicons name="ellipsis-vertical" size={16} color="#fff" />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -135,7 +180,7 @@ export default function BuyerHomeScreen({ navigation }) {
           <Text style={styles.appName}>Msika Wanjala</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.profileRow}>
+          <TouchableOpacity>
             <View style={styles.profileCircle}>
               {user.profilePic ? (
                 <Image source={user.profilePic} style={styles.profilePic} />
@@ -143,11 +188,35 @@ export default function BuyerHomeScreen({ navigation }) {
                 <Text style={styles.initialsText}>{initials}</Text>
               )}
             </View>
-            <Text style={styles.userName}>{user.name.split(" ")[0]}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setMenuVisible(true)}>
             <Ionicons name="menu" size={28} color="#333" />
           </TouchableOpacity>
+          {menuVisible && (
+            <Modal
+              transparent={true}
+              animationType="fade"
+              visible={menuVisible}
+              onRequestClose={() => setMenuVisible(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                onPress={() => setMenuVisible(false)}
+              >
+                <View style={styles.hamburgerMenu}>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("VendorProfile")}>
+                    <Text style={styles.menuItemText}>Switch to vendor profile</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("RateApp")}>
+                    <Text style={styles.menuItemText}>Rate this app</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("Logout")}>
+                    <Text style={styles.menuItemText}>Logout</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          )}
         </View>
       </View>
 
@@ -166,13 +235,24 @@ export default function BuyerHomeScreen({ navigation }) {
               />
             </View>
 
+            {/* Search by Location */}
+            <View style={[styles.searchBar, { marginTop: 5 }]}>
+              <Ionicons name="location" size={20} color="#777" style={{ marginHorizontal: 8 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by location..."
+                value={searchLocation}
+                onChangeText={setSearchLocation}
+              />
+            </View>
+
             {/* Categories */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryTabs}>
               {categories.map((cat) => (
                 <TouchableOpacity
                   key={cat}
                   style={[styles.categoryTab, activeCategory === cat && styles.activeTab]}
-                  onPress={() => setActiveCategory(cat)}
+                  onPress={() => handleCategoryPress(cat)}
                 >
                   <Text style={[styles.categoryTabText, activeCategory === cat && styles.activeTabText]}>{cat}</Text>
                 </TouchableOpacity>
@@ -180,10 +260,16 @@ export default function BuyerHomeScreen({ navigation }) {
             </ScrollView>
 
             {/* Carousel */}
-            <View style={styles.carouselWrapper}>
-              <ScrollView horizontal pagingEnabled ref={scrollRef} showsHorizontalScrollIndicator={false} scrollEnabled={false}>
+            <View style={[styles.carouselWrapper, { width: screenWidth, height: screenWidth * 0.4 }]}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                ref={scrollRef}
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={false}
+              >
                 {productData.map((p, i) => (
-                  <View key={i} style={styles.carouselSlide}>
+                  <View key={i} style={{ width: screenWidth, height: screenWidth * 0.4 }}>
                     <Image source={p.img} style={styles.carouselImage} />
                   </View>
                 ))}
@@ -198,6 +284,8 @@ export default function BuyerHomeScreen({ navigation }) {
               numColumns={2}
               columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 8 }}
               contentContainerStyle={{ paddingHorizontal: 10 }}
+              onEndReached={activeCategory === "All" ? handleLoadMore : null}
+              onEndReachedThreshold={0.5}
             />
           </ScrollView>
         )}
@@ -242,19 +330,29 @@ export default function BuyerHomeScreen({ navigation }) {
             ) : (
               cartItems.map((item, i) => (
                 <View key={i} style={styles.historyCard}>
-                  <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
-                  <Text>Qty: {item.qty}</Text>
-                  <Text>Price: {item.price}</Text>
-                  <Text>Supplier: {item.supplier}</Text>
-                  <Text>Location: {item.location}</Text>
+                  <Text style={styles.historyTitle}>{item.name}</Text>
+                  <View style={styles.historyRow}>
+                    <Text style={styles.historyLabel}>Quantity:</Text>
+                    <Text style={styles.historyValue}>{item.qty}</Text>
+                  </View>
+                  <View style={styles.historyRow}>
+                    <Text style={styles.historyLabel}>Price:</Text>
+                    <Text style={styles.historyValue}>{item.price}</Text>
+                  </View>
+                  <View style={styles.historyRow}>
+                    <Text style={styles.historyLabel}>Supplier:</Text>
+                    <Text style={styles.historyValue}>{item.supplier}</Text>
+                  </View>
+                  <View style={styles.historyRow}>
+                    <Text style={styles.historyLabel}>Location:</Text>
+                    <Text style={styles.historyValue}>{item.location}</Text>
+                  </View>
                 </View>
               ))
             )}
           </ScrollView>
         )}
 
-// BuyerHomeScreen.js
-...
         {/* Profile */}
         {activeTab === "Profile" && (
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
@@ -263,10 +361,8 @@ export default function BuyerHomeScreen({ navigation }) {
               <View style={styles.profileBigCircle}>
                 <Text style={{ fontWeight: "bold", fontSize: 28 }}>{initials}</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.profileName}>{user.name}</Text>
-                <Text style={styles.profileSubtitle}>Buyer Account</Text>
-              </View>
+              <Text style={styles.profileName}>{user.name}</Text>
+              <Text style={styles.profileSubtitle}>Buyer Account</Text>
               <TouchableOpacity style={styles.uploadBtn}>
                 <Ionicons name="camera" size={18} color="#fff" />
                 <Text style={styles.uploadBtnText}>Upload Photo</Text>
@@ -328,8 +424,6 @@ export default function BuyerHomeScreen({ navigation }) {
             </TouchableOpacity>
           </ScrollView>
         )}
-...
-
 
         {/* Notifications */}
         {activeTab === "Notifications" && (
@@ -338,6 +432,58 @@ export default function BuyerHomeScreen({ navigation }) {
           </ScrollView>
         )}
       </View>
+
+      {/* Product Modal */}
+      {selectedProduct && (
+        <Modal
+          visible={productModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={closeProductModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Image source={selectedProduct.img} style={styles.modalImage} />
+              <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
+              <Text style={styles.modalText}>Price: {selectedProduct.price}</Text>
+              <Text style={styles.modalText}>Category: {selectedProduct.category}</Text>
+              <Text style={styles.modalText}>Supplier: {selectedProduct.supplier}</Text>
+              <Text style={styles.modalText}>Location: {selectedProduct.location}</Text>
+              <TouchableOpacity style={styles.closeButton} onPress={closeProductModal}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Options Modal */}
+      {selectedProductForOptions && (
+        <Modal
+          visible={optionsModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={closeOptionsModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.optionsModalContent}>
+              <Text style={styles.modalTitle}>Options</Text>
+              <TouchableOpacity style={styles.optionButton} onPress={() => navigation.navigate("ChatScreen", { supplier: selectedProductForOptions.supplier })}>
+                <Text style={styles.optionButtonText}>Contact Supplier</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.optionButton} onPress={closeOptionsModal}>
+                <Text style={styles.optionButtonText}>Not Interested</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.optionButton} onPress={() => navigation.navigate("RelatedProducts", { category: selectedProductForOptions.category })}>
+                <Text style={styles.optionButtonText}>See Related Products</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.closeButton} onPress={closeOptionsModal}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* Floating Cart */}
       <TouchableOpacity style={styles.floatingCart} onPress={() => navigation.navigate("Cart")}>
@@ -372,6 +518,16 @@ export default function BuyerHomeScreen({ navigation }) {
 
 // --- STYLES ---
 const styles = StyleSheet.create({
+
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 15, paddingVertical: 10, backgroundColor: "#f8f8f8" },
+  logoContainer: { flexDirection: "row", alignItems: "center" },
+  logo: { width: 40, height: 40, marginRight: 10 },
+  appName: { fontSize: 18, fontWeight: "bold", color: "#333" },
+  headerActions: { flexDirection: "row", alignItems: "center" },
+  profileRow: { flexDirection: "row", alignItems: "center", marginRight: 15 },
+  profileCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#ddd", justifyContent: "center", alignItems: "center", marginRight: 10 },
+  initialsText: { fontSize: 16, fontWeight: "bold", color: "#333" },
   container: { flex: 1, backgroundColor: "#fff" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 15, backgroundColor: "#f8f8f8" },
   logoContainer: { flexDirection: "row", alignItems: "center" },
@@ -385,10 +541,10 @@ const styles = StyleSheet.create({
   userName: { fontSize: 16, color: "#333" },
   
   // --- Profile Tab Styles ---
-  profileHeader: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  profileName: { fontSize: 20, fontWeight: "bold", color: "#333" },
+  profileHeader: { alignItems: "center", marginBottom: 20 },
+  profileName: { fontSize: 20, fontWeight: "bold", color: "#333", marginTop: 10 },
   profileSubtitle: { color: "#777", marginTop: 2 },
-  uploadBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#ff6f00", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  uploadBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#ff6f00", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginTop: 10 },
   uploadBtnText: { color: "#fff", marginLeft: 5, fontSize: 12, fontWeight: "bold" },
   infoCard: { backgroundColor: "#f9f9f9", padding: 15, borderRadius: 12, marginBottom: 20, elevation: 2 },
   infoLabel: { fontSize: 14, color: "#555", marginTop: 10, fontWeight: "bold" },
@@ -401,8 +557,19 @@ const styles = StyleSheet.create({
   profileOptionText: { fontSize: 15, color: "#333" },
 
   // --- Search & Categories ---
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#f1f1f1", margin: 10, borderRadius: 8, paddingHorizontal: 10 },
-  searchInput: { flex: 1, paddingVertical: 8, fontSize: 14 },
+  searchBar: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#f1f1f1", 
+    margin: 10, 
+    borderRadius: 8, 
+    paddingHorizontal: 10 
+  },
+  searchInput: { 
+    flex: 1, 
+    paddingVertical: 8, 
+    fontSize: 14 
+  },
   categoryTabs: { paddingHorizontal: 10, marginBottom: 10 },
   categoryTab: { paddingVertical: 6, paddingHorizontal: 15, borderRadius: 20, backgroundColor: "#eee", marginRight: 10 },
   activeTab: { backgroundColor: "#ff6f00" },
@@ -410,9 +577,8 @@ const styles = StyleSheet.create({
   activeTabText: { color: "#fff", fontWeight: "bold" },
 
   // --- Carousel ---
-  carouselWrapper: { width, height: 200, marginBottom: 15 },
-  carouselSlide: { width, height: 200 },
-  carouselImage: { width, height: 200, resizeMode: "cover", borderRadius: 10 },
+  carouselWrapper: { marginBottom: 15 },
+  carouselImage: { width: "100%", height: "100%", resizeMode: "cover", borderRadius: 10 },
 
   // --- Products ---
   masonryCard: { width: "48%", backgroundColor: "#fff", borderRadius: 10, elevation: 3, overflow: "hidden" },
@@ -436,10 +602,114 @@ const styles = StyleSheet.create({
   chatAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#ddd", justifyContent: "center", alignItems: "center", marginRight: 10 },
   unreadBadge: { backgroundColor: "red", borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
 
-  // --- History ---
-  historyCard: { backgroundColor: "#f9f9f9", padding: 12, borderRadius: 10, marginBottom: 10, elevation: 2 },
+  // --- History Tab Styles ---
+  historyCard: {
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    elevation: 2,
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+  },
+  historyRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 5,
+  },
+  historyLabel: {
+    fontSize: 14,
+    color: "#555",
+    fontWeight: "bold",
+  },
+  historyValue: {
+    fontSize: 14,
+    color: "#333",
+  },
 
   // --- Profile Buttons ---
   profileBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderColor: "#eee" },
   profileBtnText: { marginLeft: 10, fontSize: 16, color: "#333" },
+
+  // --- Modal ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  modalImage: {
+    width: "100%",
+    height: 200,
+    resizeMode: "contain",
+    marginBottom: 15,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  closeButton: {
+    marginTop: 15,
+    backgroundColor: "#ff6f00",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  optionsModalContent: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  optionButton: {
+    width: "100%",
+    padding: 15,
+    backgroundColor: "#f1f1f1",
+    borderRadius: 5,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  optionButtonText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  hamburgerMenu: {
+    position: "absolute",
+    top: 50,
+    right: 15,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    elevation: 5,
+    padding: 10,
+  },
+  menuItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: "#333",
+  },
 });

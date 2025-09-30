@@ -26,7 +26,7 @@ import { CartContext } from "../context/CartContext";
  * - uses navigation.navigate('Product') if you want to wire to product details
  */
 export default function CartScreen({ navigation }) {
-  const { cartItems, setCartItems } = useContext(CartContext);
+  const { cartItems, addToCart, deleteFromCart, updateQuantity, clearCart } = useContext(CartContext);
   const [promo, setPromo] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(null);
 
@@ -37,7 +37,7 @@ export default function CartScreen({ navigation }) {
     { id: "r3", img: require("../assets/product4.jpg"), name: "Phones", price: 25000 },
   ];
 
-  const removeItem = (name) => {
+  const removeItem = (id, name) => {
     Alert.alert(
       "Remove item",
       `Remove ${name} from cart?`,
@@ -46,33 +46,19 @@ export default function CartScreen({ navigation }) {
         {
           text: "Remove",
           style: "destructive",
-          onPress: () => setCartItems(cartItems.filter((item) => item.name !== name)),
+          onPress: () => deleteFromCart(id),
         },
       ],
       { cancelable: true }
     );
   };
 
-  const increaseQty = (name) => {
-    setCartItems(
-      cartItems.map((item) => (item.name === name ? { ...item, qty: (item.qty || 1) + 1 } : item))
-    );
+  const increaseQty = (id, qty) => {
+    updateQuantity(id, qty + 1);
   };
 
-  const decreaseQty = (name) => {
-    setCartItems(
-      cartItems.map((item) =>
-        item.name === name ? { ...item, qty: item.qty > 1 ? item.qty - 1 : 1 } : item
-      )
-    );
-  };
-
-  const clearCart = () => {
-    if (cartItems.length === 0) return;
-    Alert.alert("Clear cart", "Are you sure you want to remove all items from your cart?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Clear", style: "destructive", onPress: () => setCartItems([]) },
-    ]);
+  const decreaseQty = (id, qty) => {
+    updateQuantity(id, qty > 1 ? qty - 1 : 1);
   };
 
   // subtotal per item and total
@@ -147,11 +133,11 @@ export default function CartScreen({ navigation }) {
             {/* qty + subtotal row */}
             <View style={styles.row}>
               <View style={styles.qtyBox}>
-                <TouchableOpacity onPress={() => decreaseQty(item.name)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <TouchableOpacity onPress={() => decreaseQty(item.id, qty)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="remove-circle" size={26} color="#ff6f00" />
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{qty}</Text>
-                <TouchableOpacity onPress={() => increaseQty(item.name)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <TouchableOpacity onPress={() => increaseQty(item.id, qty)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="add-circle" size={26} color="#ff6f00" />
                 </TouchableOpacity>
               </View>
@@ -166,7 +152,7 @@ export default function CartScreen({ navigation }) {
 
         {/* actions: remove */}
         <View style={styles.itemActions}>
-          <TouchableOpacity onPress={() => removeItem(item.name)} style={styles.iconBtn}>
+          <TouchableOpacity onPress={() => removeItem(item.id, item.name)} style={styles.iconBtn}>
             <Ionicons name="trash" size={20} color="#b71c1c" />
           </TouchableOpacity>
         </View>
@@ -244,9 +230,9 @@ export default function CartScreen({ navigation }) {
                         // add to cart quickly
                         const exists = cartItems.find((it) => it.name === r.name);
                         if (exists) {
-                          setCartItems(cartItems.map((it) => (it.name === r.name ? { ...it, qty: it.qty + 1 } : it)));
+                          updateQuantity(r.id, exists.qty + 1);
                         } else {
-                          setCartItems([...cartItems, { ...r, qty: 1 }]);
+                          addToCart({ ...r, qty: 1 });
                         }
                       }}
                     >
