@@ -13,11 +13,13 @@ import {
   Platform,
   SafeAreaView,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 // ✅ Import CartContext (must exist and provide cartItems, setCartItems)
 import { CartContext } from "../context/CartContext";
+import { ThemeContext } from "../context/ThemeContext";
 
 /**
  * Modern, professional Cart screen
@@ -29,6 +31,10 @@ export default function CartScreen({ navigation }) {
   const { cartItems, addToCart, deleteFromCart, updateQuantity, clearCart } = useContext(CartContext);
   const [promo, setPromo] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(null);
+  const { theme } = useContext(ThemeContext);
+  const { width } = useWindowDimensions();
+  const isWideScreen = width >= 768;
+  const styles = getStyles(theme, isWideScreen);
 
   // Demo recommendations (use actual data / API in production)
   const recommendations = [
@@ -100,13 +106,40 @@ export default function CartScreen({ navigation }) {
     }
   
     // ✅ Navigate to Checkout screen, pass cart data and total
-    navigation.navigate("Checkout", {
+    navigation.navigate("CheckoutScreen", {
       total: finalTotal,
       items: cartItems,
       discount: discountAmount,
     });
   };
   
+  const RecommendationsView = () => (
+    <View style={styles.recommendationsContainer}>
+      <Text style={styles.recommendTitle}>You may also like</Text>
+      <ScrollView>
+        {recommendations.map((r) => (
+          <View key={r.id} style={styles.recommendCard}>
+            <Image source={r.img} style={styles.recommendImg} />
+            <View style={styles.recommendDetails}>
+              <Text style={styles.recommendName} numberOfLines={1}>{r.name}</Text>
+              <Text style={styles.recommendPrice}>MWK {r.price.toLocaleString()}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.recommendAdd}
+              onPress={() => {
+                const exists = cartItems.find((it) => it.id === r.id);
+                if (exists) {
+                  updateQuantity(r.id, exists.qty + 1);
+                } else {
+                  addToCart(r);
+                }
+              }}
+            ><Text style={{ color: "#fff", fontWeight: "700" }}>Add</Text></TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
   const renderItem = ({ item }) => {
     const qty = item.qty || 1;
@@ -117,7 +150,7 @@ export default function CartScreen({ navigation }) {
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => {
-            // navigate to product details if you have one
+            // Navigate to product details if you have one
             // navigation.navigate("Product", { product: item });
           }}
           style={{ flexDirection: "row", alignItems: "center" }}
@@ -134,7 +167,7 @@ export default function CartScreen({ navigation }) {
             <View style={styles.row}>
               <View style={styles.qtyBox}>
                 <TouchableOpacity onPress={() => decreaseQty(item.id, qty)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="remove-circle" size={26} color="#ff6f00" />
+                  <Ionicons name="remove-circle" size={26} color={theme.primary} />
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{qty}</Text>
                 <TouchableOpacity onPress={() => increaseQty(item.id, qty)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -160,13 +193,80 @@ export default function CartScreen({ navigation }) {
     );
   };
 
+  if (isWideScreen) {
+    // --- WIDE SCREEN LAYOUT ---
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.headerRow}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} >
+              <Ionicons name="arrow-back" size={22} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Your Cart</Text>
+            <Text style={styles.headerCount}>{cartItems.length} item{cartItems.length !== 1 ? "s" : ""}</Text>
+          </View>
+          <TouchableOpacity onPress={clearCart} style={styles.clearBtn}>
+            <Text style={styles.clearTxt}>Clear</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ flexDirection: 'row', flex: 1 }}>
+          <View style={styles.leftColumn}>
+            {cartItems.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="cart-outline" size={64} color="#ccc" />
+                <Text style={styles.emptyTitle}>Your cart is empty</Text>
+                <Text style={styles.emptySubtitle}>Add items from the marketplace to get started.</Text>
+                <TouchableOpacity style={styles.continueBtn} onPress={() => navigation.navigate("BuyerHomeScreen")}>
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>Continue Shopping</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList
+                data={cartItems}
+                keyExtractor={(item) => item.name}
+                renderItem={renderItem}
+                contentContainerStyle={{ padding: 12 }}
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+              />
+            )}
+          </View>
+          <RecommendationsView />
+        </View>
+        {/* Footer for wide screen */}
+        <View style={styles.stickyFooter}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.footerLabel}>Total</Text>
+            {appliedPromo ? (
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.footerTotal}>MWK {totalPrice.toLocaleString()}</Text>
+                <Text style={styles.promoApplied}>  -{appliedPromo.code} </Text>
+              </View>
+            ) : (
+              <Text style={styles.footerTotal}>MWK {totalPrice.toLocaleString()}</Text>
+            )}
+            {discountAmount > 0 && (
+              <Text style={styles.discountText}>Discount: MWK {discountAmount.toLocaleString()}</Text>
+            )}
+            <Text style={[styles.footerTotal, { fontSize: 16 }]}>Pay: MWK {finalTotal.toLocaleString()}</Text>
+          </View>
+          <View style={{ width: 140, justifyContent: "center" }}>
+            <TouchableOpacity style={styles.checkoutBtn} onPress={checkout}>
+              <Text style={{ color: "#fff", fontWeight: "700" }}>Proceed to Pay</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // --- MOBILE LAYOUT ---
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.headerRow}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={22} color="#333" />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} >
+              <Ionicons name="arrow-back" size={22} color={theme.text} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Your Cart</Text>
             <Text style={styles.headerCount}>{cartItems.length} item{cartItems.length !== 1 ? "s" : ""}</Text>
@@ -184,7 +284,7 @@ export default function CartScreen({ navigation }) {
             <Text style={styles.emptySubtitle}>Add items from the marketplace to get started.</Text>
             <TouchableOpacity
               style={styles.continueBtn}
-              onPress={() => navigation.navigate("BuyerHome")} // keep UX smooth
+              onPress={() => navigation.navigate("BuyerHomeScreen")} // keep UX smooth
             >
               <Text style={{ color: "#fff", fontWeight: "700" }}>Continue Shopping</Text>
             </TouchableOpacity>
@@ -206,7 +306,7 @@ export default function CartScreen({ navigation }) {
                   value={promo}
                   onChangeText={setPromo}
                   placeholder="Promo code"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.textSecondary}
                   style={styles.promoInput}
                 />
               </View>
@@ -217,7 +317,7 @@ export default function CartScreen({ navigation }) {
 
             {/* Recommendations */}
             <View style={styles.recommendWrap}>
-              <Text style={styles.recommendTitle}>Recommended for you</Text>
+              <Text style={styles.recommendTitle}>You may also like</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {recommendations.map((r) => (
                   <View key={r.id} style={styles.recommendCard}>
@@ -228,11 +328,11 @@ export default function CartScreen({ navigation }) {
                       style={styles.recommendAdd}
                       onPress={() => {
                         // add to cart quickly
-                        const exists = cartItems.find((it) => it.name === r.name);
+                        const exists = cartItems.find((it) => it.id === r.id);
                         if (exists) {
                           updateQuantity(r.id, exists.qty + 1);
                         } else {
-                          addToCart({ ...r, qty: 1 });
+                          addToCart(r);
                         }
                       }}
                     >
@@ -276,8 +376,8 @@ export default function CartScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+const getStyles = (theme, isWideScreen) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   headerRow: {
     paddingHorizontal: 12,
     paddingTop: 12,
@@ -285,132 +385,152 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottomWidth: 0.5,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.card,
   },
   backBtn: {
     padding: 6,
     borderRadius: 8,
     marginRight: 8,
   },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#222" },
-  headerCount: { marginLeft: 8, color: "#666", fontSize: 13 },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: theme.text },
+  headerCount: { marginLeft: 8, color: theme.textSecondary, fontSize: 13 },
   clearBtn: { padding: 6 },
-  clearTxt: { color: "#ff6f00", fontWeight: "700" },
+  clearTxt: { color: theme.primary, fontWeight: "700" },
 
   emptyState: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-  emptyTitle: { marginTop: 12, fontSize: 18, fontWeight: "700", color: "#333" },
-  emptySubtitle: { marginTop: 6, color: "#666", textAlign: "center" },
+  emptyTitle: { marginTop: 12, fontSize: 18, fontWeight: "700", color: theme.text },
+  emptySubtitle: { marginTop: 6, color: theme.textSecondary, textAlign: "center" },
   continueBtn: {
     marginTop: 18,
-    backgroundColor: "#ff6f00",
+    backgroundColor: theme.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
   },
 
   itemCard: {
-    backgroundColor: "#fff",
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 12,
     elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
     flexDirection: "row",
     alignItems: "flex-start",
   },
   itemImage: { width: 96, height: 96, borderRadius: 10, resizeMode: "cover" },
-  itemTitle: { fontSize: 16, fontWeight: "700", color: "#222" },
-  itemSupplier: { fontSize: 12, color: "#666", marginTop: 4 },
-  itemPrice: { marginTop: 8, fontWeight: "700", color: "#333" },
+  itemTitle: { fontSize: 16, fontWeight: "700", color: theme.text },
+  itemSupplier: { fontSize: 12, color: theme.textSecondary, marginTop: 4 },
+  itemPrice: { marginTop: 8, fontWeight: "700", color: theme.text },
 
   row: { flexDirection: "row", alignItems: "center", marginTop: 10 },
   qtyBox: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 8,
-    backgroundColor: "#fff",
+    backgroundColor: theme.input,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    elevation: 1,
   },
-  qtyText: { marginHorizontal: 10, fontWeight: "700" },
+  qtyText: { marginHorizontal: 10, fontWeight: "700", color: theme.text },
 
-  subtotalText: { fontSize: 12, color: "#777" },
-  subtotalValue: { fontWeight: "700", marginTop: 2 },
+  subtotalText: { fontSize: 12, color: theme.textSecondary },
+  subtotalValue: { fontWeight: "700", marginTop: 2, color: theme.text },
 
   itemActions: { position: "absolute", right: 10, top: 10 },
   iconBtn: { padding: 6 },
 
   promoRow: {
     flexDirection: "row",
-    paddingHorizontal: 12,
+    padding: 12,
     alignItems: "center",
-    marginBottom: 8,
+    backgroundColor: theme.card,
   },
   promoLeft: { flex: 1 },
   promoInput: {
-    backgroundColor: "#f6f6f6",
+    backgroundColor: theme.input,
+    color: theme.text,
     paddingHorizontal: 12,
     paddingVertical: Platform.OS === "ios" ? 12 : 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#eee",
+    borderColor: theme.border,
   },
   applyBtn: {
     marginLeft: 8,
-    backgroundColor: "#ff6f00",
+    backgroundColor: theme.primary,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 8,
   },
-  promoApplied: { color: "#ff6f00", fontWeight: "700", marginLeft: 8 },
+  promoApplied: { color: theme.primary, fontWeight: "700", marginLeft: 8 },
 
-  recommendWrap: { paddingHorizontal: 12, marginTop: 6 },
-  recommendTitle: { fontWeight: "800", marginBottom: 8, fontSize: 14 },
+  recommendWrap: { padding: 12, backgroundColor: theme.card, borderTopWidth: 1, borderColor: theme.border },
+  recommendTitle: { fontWeight: "800", marginBottom: 12, fontSize: 16, color: theme.text },
   recommendCard: {
-    width: 120,
+    width: isWideScreen ? '100%' : 120,
     marginRight: 10,
-    backgroundColor: "#fff",
+    backgroundColor: isWideScreen ? theme.card : theme.input,
     borderRadius: 10,
     padding: 8,
-    elevation: 1,
-    alignItems: "center",
+    alignItems: isWideScreen ? 'flex-start' : "center",
+    flexDirection: isWideScreen ? 'row' : 'column',
+    marginBottom: isWideScreen ? 12 : 0,
   },
-  recommendImg: { width: 100, height: 80, borderRadius: 8, resizeMode: "cover" },
-  recommendName: { fontSize: 12, marginTop: 6, fontWeight: "700" },
-  recommendPrice: { fontSize: 12, color: "#777", marginTop: 4 },
+  recommendImg: {
+    width: isWideScreen ? 80 : 100,
+    height: isWideScreen ? 80 : 80,
+    borderRadius: 8,
+    resizeMode: "cover",
+  },
+  recommendDetails: {
+    flex: 1,
+    marginLeft: isWideScreen ? 12 : 0,
+    marginTop: isWideScreen ? 0 : 6,
+  },
+  recommendName: { fontSize: isWideScreen ? 15 : 12, fontWeight: "700", color: theme.text },
+  recommendPrice: { fontSize: isWideScreen ? 14 : 12, color: theme.textSecondary, marginTop: 4 },
   recommendAdd: {
-    marginTop: 8,
-    backgroundColor: "#ff6f00",
+    marginTop: isWideScreen ? 0 : 8,
+    marginLeft: isWideScreen ? 12 : 0,
+    backgroundColor: theme.primary,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
 
   stickyFooter: {
-    position: "absolute",
+    position: isWideScreen ? 'relative' : "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#fff",
+    backgroundColor: theme.card,
     borderTopWidth: 1,
-    borderColor: "#eee",
+    borderColor: theme.border,
     padding: 12,
     flexDirection: "row",
     alignItems: "center",
   },
-  footerLabel: { color: "#777", fontSize: 12 },
-  footerTotal: { fontSize: 18, fontWeight: "800", color: "#222" },
+  footerLabel: { color: theme.textSecondary, fontSize: 12 },
+  footerTotal: { fontSize: 18, fontWeight: "800", color: theme.text },
   discountText: { color: "#2e7d32", fontWeight: "700" },
 
   checkoutBtn: {
-    backgroundColor: "#ff6f00",
+    backgroundColor: theme.primary,
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
+  },
+  // --- Wide Screen Specific Styles ---
+  leftColumn: {
+    flex: 2, // Takes up 2/3 of the space
+    backgroundColor: theme.background,
+    borderRightWidth: 1,
+    borderRightColor: theme.border,
+  },
+  recommendationsContainer: {
+    flex: 1, // Takes up 1/3 of the space
+    padding: 16,
+    backgroundColor: theme.input,
   },
 });

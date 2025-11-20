@@ -10,18 +10,30 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-picker/picker": "^2.11.2",
     "@react-navigation/native": "^6.1.6",
     "@react-navigation/native-stack": "^6.9.12",
     "axios": "^1.4.0",
     "expo": "~54.0.10",
     "expo-dev-client": "~6.0.12",
+    "expo-firebase-recaptcha": "^2.3.1",
+    "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.7",
+    "expo-location": "~19.0.7",
     "expo-status-bar": "~3.0.8",
+    "firebase": "^12.4.0",
+    "leaflet": "^1.9.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-leaflet": "^5.0.0",
     "react-native": "^0.81.4",
     "react-native-chart-kit": "^6.12.0",
+    "react-native-maps": "1.20.1",
     "react-native-svg": "^15.13.0",
-    "react-native-web": "^0.21.1"
+    "react-native-web": "^0.21.1",
+    "react-native-webview": "13.15.0"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^20.0.2"
   }
 }

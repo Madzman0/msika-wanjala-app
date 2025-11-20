@@ -7,6 +7,13 @@
     },
     "android": {
       "package": "com.madzman.msikawanjalamobile"
+    },
+    "web": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
+        }
+      }
     }
   }
 }

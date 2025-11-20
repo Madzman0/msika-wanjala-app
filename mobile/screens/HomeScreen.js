@@ -170,8 +170,7 @@ export default function HomeScreen({ navigation }) {
             <View key={product.id} style={styles.productCard}>
               <Image
                 source={product.images[0]}
-                style={styles.productImage}
-                resizeMode="cover"
+                style={styles.productImage} resizeMode="cover"
               />
               <View style={styles.productHeader}>
                 <Text style={styles.productName}>{product.name}</Text>
@@ -329,16 +328,16 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.menuItemText}>Home</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuItemText}>Profile</Text>
+            <Text style={styles.menuItemText}>Get Access</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuItemText}>Orders</Text>
+            <Text style={styles.menuItemText}>Become a vendor</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
             <Text style={styles.menuItemText}>Settings</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuItemText}>Logout</Text>
+            <Text style={styles.menuItemText}>Contact Us</Text>
           </TouchableOpacity>
         </View>
       </Modal>

@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { register } from '../api/auth';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('seller'); // default role
-  const [darkMode, setDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme, theme: contextTheme } = useContext(ThemeContext);
 
   const handleRegister = async () => {
     try {
@@ -21,13 +22,13 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-  const theme = darkMode ? darkStyles : lightStyles;
+  const styles = isDarkMode ? darkStyles : lightStyles;
 
   return (
-    <View style={[theme.container]}>
+    <View style={[styles.container]}>
       {/* Dark Mode Toggle */}
-      <TouchableOpacity style={theme.modeToggle} onPress={() => setDarkMode(!darkMode)}>
-        {darkMode ? (
+      <TouchableOpacity style={styles.modeToggle} onPress={toggleTheme}>
+        {isDarkMode ? (
           <Ionicons name="sunny-outline" size={24} color="#ffcc00" />
         ) : (
           <Ionicons name="moon-outline" size={24} color="#444" />
@@ -35,29 +36,29 @@ export default function RegisterScreen({ navigation }) {
       </TouchableOpacity>
 
       {/* Logo */}
-      <View style={theme.header}>
-        <Image source={require('../assets/logo.png')} style={theme.logo} />
-        <Text style={theme.appName}>Msika Wanjala</Text>
+      <View style={styles.header}>
+        <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.appName}>Msika Wanjala</Text>
       </View>
 
       {/* Form Card */}
-      <View style={theme.form}>
-        <Text style={theme.title}>Register</Text>
+      <View style={styles.form}>
+        <Text style={styles.title}>Register</Text>
 
         <TextInput
           value={name}
           onChangeText={setName}
           placeholder="Full Name"
-          placeholderTextColor={darkMode ? "#aaa" : "#555"}
-          style={theme.input}
+          placeholderTextColor={isDarkMode ? "#aaa" : "#555"}
+          style={styles.input}
         />
 
         <TextInput
           value={phone}
           onChangeText={setPhone}
           placeholder="Phone"
-          placeholderTextColor={darkMode ? "#aaa" : "#555"}
-          style={theme.input}
+          placeholderTextColor={isDarkMode ? "#aaa" : "#555"}
+          style={styles.input}
         />
 
         <TextInput
@@ -65,16 +66,16 @@ export default function RegisterScreen({ navigation }) {
           onChangeText={setPassword}
           secureTextEntry
           placeholder="Password"
-          placeholderTextColor={darkMode ? "#aaa" : "#555"}
-          style={theme.input}
+          placeholderTextColor={isDarkMode ? "#aaa" : "#555"}
+          style={styles.input}
         />
 
-        <TouchableOpacity style={theme.button} onPress={handleRegister}>
-          <Text style={theme.buttonText}>Register</Text>
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Register</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={theme.linkButton} onPress={() => navigation.navigate('Login')}>
-          <Text style={theme.linkText}>Already have an account? Login</Text>
+        <TouchableOpacity style={styles.linkButton} onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.linkText}>Already have an account? Login</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -86,7 +87,7 @@ const lightStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', padding: 20 },
   modeToggle: { position: 'absolute', top: 40, right: 20 },
   header: { alignItems: 'center', marginBottom: 30 },
-  logo: { width: 100, height: 100, resizeMode: 'contain', marginBottom: 10 },
+  logo: { width: 100, height: 100, marginBottom: 10 },
   appName: { fontSize: 22, fontWeight: 'bold', color: '#ff6f00' },
   form: { backgroundColor: '#f9f9f9', padding: 25, borderRadius: 10, elevation: 3 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#ff6f00' },
@@ -102,7 +103,7 @@ const darkStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', padding: 20 },
   modeToggle: { position: 'absolute', top: 40, right: 20 },
   header: { alignItems: 'center', marginBottom: 30 },
-  logo: { width: 100, height: 100, resizeMode: 'contain', marginBottom: 10, tintColor: '#fff' },
+  logo: { width: 100, height: 100, marginBottom: 10, tintColor: '#fff' },
   appName: { fontSize: 22, fontWeight: 'bold', color: '#ff6f00' },
   form: { backgroundColor: '#1e1e1e', padding: 25, borderRadius: 10 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#ff6f00' },

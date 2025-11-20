@@ -1,6 +1,6 @@
 // SplashScreen.js
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, Image, Animated } from "react-native";
+import { View, StyleSheet, Image, Animated } from "react-native";
 
 export default function SplashScreen({ navigation }) {
   const fadeAnim = useRef(new Animated.Value(0)).current; // fade in/out
@@ -13,35 +13,24 @@ export default function SplashScreen({ navigation }) {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1200,
-        useNativeDriver: true,
+        useNativeDriver: false, // Changed to false for web compatibility
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 4,
         tension: 80,
-        useNativeDriver: true,
+        useNativeDriver: false, // Changed to false for web compatibility
       }),
     ]).start();
 
-    // OUT-ANIMATION + navigate
-    const timer = setTimeout(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }).start(() => {
-        navigation.replace("Welcome"); // ✅ Go to Welcome instead of Home
-      });
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [navigation, fadeAnim, scaleAnim]);
+  }, [fadeAnim, scaleAnim]);
 
   const theme = darkMode ? darkStyles : lightStyles;
 
   return (
     <View style={theme.container}>
       <Animated.Image
+        resizeMode="contain"
         source={require("../assets/logo.png")}
         style={[
           theme.logo,
@@ -63,7 +52,7 @@ const lightStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  logo: { width: 120, height: 120, marginBottom: 20, resizeMode: "contain" },
+  logo: { width: 120, height: 120, marginBottom: 20 },
   appName: { fontSize: 28, fontWeight: "bold", color: "#fff" },
 });
 
@@ -79,7 +68,6 @@ const darkStyles = StyleSheet.create({
     width: 120,
     height: 120,
     marginBottom: 20,
-    resizeMode: "contain",
     tintColor: "#ff6f00",
   },
   appName: { fontSize: 28, fontWeight: "bold", color: "#ff6f00" },

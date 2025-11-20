@@ -1,35 +1,40 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function WelcomeScreen({ navigation }) {
+  const { width } = useWindowDimensions();
+
   return (
     <View style={styles.container}>
-      <Ionicons name="storefront-outline" size={64} color="#ff6f00" style={styles.icon} />
+      {/* Responsive container for the main content */}
+      <View style={[styles.contentContainer, width > 768 && styles.desktopContentContainer]}>
+        <Ionicons name="storefront-outline" size={64} color="#ff6f00" style={styles.icon} />
 
-      <Text style={styles.header}>Welcome to Msika Wanjala</Text>
-      <Text style={styles.desc}>
-        Your trusted marketplace for buying, selling, and connecting with your community.
-      </Text>
+        <Text style={styles.header}>Welcome to Msika Wanjala</Text>
+        <Text style={styles.desc}>
+          Your trusted marketplace for buying, selling, and connecting with your community.
+        </Text>
 
-      {/* Login button → goes to General Login */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate("GeneralLogin")}
-      >
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
+        {/* Login button → goes to General Login */}
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate("GeneralLogin")}
+        >
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
 
-      {/* Continue as Guest → goes to Home */}
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={() => navigation.navigate("Home")}
-      >
-        <Text style={styles.secondaryButtonText}>Continue as Guest</Text>
-      </TouchableOpacity>
+        {/* Continue as Guest → goes to Home */}
+        <TouchableOpacity
+          style={styles.secondaryButton}
+        onPress={() => navigation.navigate("BuyerHomeScreen")}
+        >
+          <Text style={styles.secondaryButtonText}>Continue as Guest</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Sign Up Link → now goes to SignUpScreen */}
-      <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+      <TouchableOpacity onPress={() => navigation.navigate("SignUpScreen")}>
         <Text style={styles.signupText}>
           Don’t have an account? <Text style={{ color: "#ff6f00" }}>Sign up</Text>
         </Text>
@@ -44,7 +49,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#fff",
+    backgroundColor: "#121212",
+  },
+  // New responsive container
+  contentContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  desktopContentContainer: {
+    maxWidth: 500,
+    alignSelf: 'center',
   },
   icon: {
     marginBottom: 16,
@@ -54,11 +68,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
     textAlign: "center",
-    color: "#222",
+    color: "#fff",
   },
   desc: {
     fontSize: 16,
-    color: "#666",
+    color: "#b0b0b0",
     textAlign: "center",
     marginBottom: 40,
     lineHeight: 22,
@@ -66,7 +80,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#ff6f00",
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 10,
     width: "85%",
     alignItems: "center",
@@ -77,7 +91,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     borderColor: "#ff6f00",
     borderWidth: 2,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 10,
     width: "85%",
     alignItems: "center",
@@ -86,7 +100,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: "#ff6f00", fontSize: 18, fontWeight: "bold" },
   signupText: {
     fontSize: 14,
-    color: "#666",
+    color: "#b0b0b0",
     marginTop: 10,
   },
 });

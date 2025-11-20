@@ -9,12 +9,17 @@ import {
   FlatList,
   Modal,
   TextInput,
+  TouchableWithoutFeedback,
   ScrollView,
   Alert,
   Animated,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
+import { LineChart, BarChart } from "react-native-chart-kit";
 
+const screenWidth = Dimensions.get("window").width;
 /*
  TransporterHomeScreen
  - Full UI-only transporter workflow prototype (not backend)
@@ -48,6 +53,7 @@ const INITIAL_PARCELS = [
     status: "ready", // ready, competing, claimed, atDepot, inTransit, delivered
     claimedBy: null, // transporter id
     qrData: null, // will be simulated
+    deliveryFee: 1200,
     chat: [], // messages between transporter and buyer
     progress: 0, // delivery progress %
     ratingByBuyer: null, // after delivered
@@ -66,6 +72,7 @@ const INITIAL_PARCELS = [
     status: "ready",
     claimedBy: null,
     qrData: null,
+    deliveryFee: 800,
     chat: [],
     progress: 0,
     ratingByBuyer: null,
@@ -84,6 +91,7 @@ const INITIAL_PARCELS = [
     status: "ready",
     claimedBy: null,
     qrData: null,
+    deliveryFee: 3500,
     chat: [],
     progress: 0,
     ratingByBuyer: null,
@@ -91,10 +99,17 @@ const INITIAL_PARCELS = [
   },
 ];
 
+// Mock data for the new "Top Transporters" panel
+const TOP_TRANSPORTERS_WEEK = [
+  { id: "T-9002", name: "Zoom Logistics", rating: 4.9, deliveries: 25 },
+  { id: "T-9001", name: "Michael Transport", rating: 4.8, deliveries: 22 }, // This is the current user
+  { id: "T-9003", name: "Rapid Rides", rating: 4.7, deliveries: 30 },
+];
+
 // simple distance (approx) for nearest-depot calc (not precise, fine for demo)
 const distSq = (a, b) => (a.lat - b.lat) ** 2 + (a.lon - b.lon) ** 2;
 
-export default function TransporterHomeScreen({ navigation }) {
+export default function TransporterHomeScreen({ navigation, setIsLoggedIn }) {
   // transporter profile (pretend this is loaded from auth)
   const [transporter] = useState({
     id: "T-9001",
@@ -105,7 +120,7 @@ export default function TransporterHomeScreen({ navigation }) {
   });
 
   // app state
-  const [activeTab, setActiveTab] = useState("Available");
+  const [activeTab, setActiveTab] = useState("Dashboard");
   const [parcels, setParcels] = useState(() => {
     // initialize parcels and compute nearest depot + qrData simulated
     return INITIAL_PARCELS.map((p) => {
@@ -127,7 +142,11 @@ export default function TransporterHomeScreen({ navigation }) {
   });
 
   const [myParcels, setMyParcels] = useState([]); // parcels assigned/taken by this transporter
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([
+    // Add a mock "late" notification to demonstrate the new feature
+    { id: `N-LATE-${Date.now()}`, type: 'late_queue_check', text: `Delivery for P-1003 seems delayed. Are you in a queue?`, parcelId: 'P-1003', time: Date.now() - 1000 * 60 * 5 },
+    { id: `N-WELCOME-${Date.now()}`, type: 'text', text: 'Welcome to your dashboard, Michael!', time: Date.now() - 1000 * 60 * 60 },
+  ]);
   const [history, setHistory] = useState([]); // delivered parcels
   // UI modals & helpers
   const [competingParcel, setCompetingParcel] = useState(null); // parcel under competition
@@ -148,6 +167,10 @@ export default function TransporterHomeScreen({ navigation }) {
   const [ratingModalParcel, setRatingModalParcel] = useState(null);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [buyerRating, setBuyerRating] = useState("");
+  // Menu state
+  const [menuVisible, setMenuVisible] = useState(false);
+  const menuAnim = useRef(new Animated.Value(250)).current;
+
 
   // convenience: show only parcels that belong to this transporter's depot and type (simulate nearest-depot notifications)
   const availableParcelsForMe = parcels.filter(
@@ -275,6 +298,7 @@ export default function TransporterHomeScreen({ navigation }) {
     setMyParcels((prev) => prev.map((p) => (p.id === ratingModalParcel.id ? { ...p, ratingByBuyer: rating } : p)));
     setHistory((prev) => prev.map((h) => (h.id === ratingModalParcel.id ? { ...h, ratingByBuyer: rating } : h)));
     pushNotif(`Buyer rated parcel ${ratingModalParcel.id} ${rating} ★`);
+    pushNotif(`Your overall rating may have changed.`);
     setRatingModalVisible(false);
     setBuyerRating("");
     setRatingModalParcel(null);
@@ -299,14 +323,165 @@ export default function TransporterHomeScreen({ navigation }) {
     setChatText("");
     // simulate buyer reply with slight delay
     setTimeout(() => {
+      // Also push a notification for the new message
+      pushNotif(`New message from ${chatParcel.buyerName} regarding parcel ${chatParcel.id}`);
       addChatMessage(chatParcel.id, { sender: chatParcel.buyerName, text: "Thanks — noted!", time: Date.now() });
     }, 1500);
   };
 
+  // Handle the response to the "Are you in a queue?" notification
+  const handleQueueResponse = (notificationId, parcelId, response) => {
+    if (response === 'yes') {
+      // Replace the question notification with a map notification
+      setNotifications(prev => [
+        { id: `N-MAP-${parcelId}`, type: 'map_route', parcelId: parcelId, time: Date.now() },
+        ...prev.filter(n => n.id !== notificationId)
+      ]);
+      pushNotif(`Heavy traffic reported on your route for parcel ${parcelId}.`);
+    } else {
+      // Just remove the notification if they tap "No"
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      pushNotif(`Noted. Please proceed with caution on parcel ${parcelId}.`);
+    }
+  };
+
+  // --- Menu Handlers ---
+  const openMenu = () => {
+    setMenuVisible(true);
+    Animated.timing(menuAnim, { toValue: 0, duration: 220, useNativeDriver: true }).start();
+  };
+
+  const closeMenu = () => {
+    Animated.timing(menuAnim, { toValue: 250, duration: 200, useNativeDriver: true }).start(() => {
+      setMenuVisible(false);
+    });
+  };
+
+  const handleSwitchRole = (role) => {
+    closeMenu();
+    if (role === 'Buyer') {
+      // Set isLoggedIn to true to switch to the buyer stack
+      setIsLoggedIn(true);
+    } else if (role === 'Seller') {
+      navigation.replace('SellerHome');
+    }
+  };
+
+  const handleLogout = () => {
+    closeMenu();
+    navigation.replace('Welcome');
+  };
   // UI helpers
   useEffect(() => {
     return () => clearInterval(competeRef.current);
   }, []);
+
+  // --- DASHBOARD DATA COMPUTATION ---
+  const computeDashboardStats = () => {
+    const totalEarnings = history.reduce((sum, p) => sum + (p.deliveryFee || 0), 0);
+    const totalDeliveries = history.length;
+    const ratedDeliveries = history.filter(p => p.ratingByBuyer);
+    const avgRating = ratedDeliveries.length > 0
+      ? (ratedDeliveries.reduce((sum, p) => sum + p.ratingByBuyer, 0) / ratedDeliveries.length).toFixed(1)
+      : "N/A";
+    return { totalEarnings, totalDeliveries, avgRating };
+  };
+
+  const computeEarningsChart = () => {
+    // Dummy data for the last 6 months
+    const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+    const data = [
+      Math.random() * 5000,
+      Math.random() * 8000,
+      Math.random() * 6000,
+      Math.random() * 9000,
+      Math.random() * 7500,
+      history.reduce((sum, p) => sum + (p.deliveryFee || 0), 0), // Current month earnings
+    ].map(d => Math.round(d / 100) * 100);
+    return { labels, datasets: [{ data }] };
+  };
+
+  const computeLocationChart = () => {
+    const locationCounts = history.reduce((acc, p) => {
+      const city = p.buyerAddress.split(',').pop().trim();
+      acc[city] = (acc[city] || 0) + 1;
+      return acc;
+    }, {});
+
+    const labels = Object.keys(locationCounts);
+    if (labels.length === 0) return { labels: ["N/A"], datasets: [{ data: [0] }] };
+    
+    const data = Object.values(locationCounts);
+    return { labels, datasets: [{ data }] };
+  };
+
+  // --- RENDERERS ---
+
+  const chartConfig = {
+    backgroundColor: "#fff",
+    backgroundGradientFrom: "#fff",
+    backgroundGradientTo: "#fff",
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`, // blue color
+    labelColor: (opacity = 1) => `rgba(55, 65, 81, ${opacity})`, // gray color
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: { r: "4", strokeWidth: "2", stroke: "#1d4ed8" },
+  };
+
+  const DashboardView = () => {
+    const stats = computeDashboardStats();
+    const earningsData = computeEarningsChart();
+    const locationData = computeLocationChart();
+
+    return (
+      <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 100 }}>
+        <Text style={styles.dashboardHeader}>Your Dashboard</Text>
+        
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}><Text style={styles.statValue}>MWK {stats.totalEarnings.toLocaleString()}</Text><Text style={styles.statLabel}>Total Earnings</Text></View>
+          <View style={styles.statCard}><Text style={styles.statValue}>{stats.totalDeliveries}</Text><Text style={styles.statLabel}>Deliveries</Text></View>
+          <View style={styles.statCard}><Text style={styles.statValue}>{stats.avgRating} ★</Text><Text style={styles.statLabel}>Avg. Rating</Text></View>
+        </View>
+
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Monthly Earnings</Text>
+          <LineChart data={earningsData} width={screenWidth - 56} height={200} yAxisLabel="MWK " yAxisSuffix="k" yAxisInterval={1} chartConfig={chartConfig} bezier style={{ borderRadius: 16 }} formatYLabel={(y) => `${Math.round(parseFloat(y) / 1000)}`} />
+        </View>
+
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Deliveries by Location</Text>
+          <BarChart data={locationData} width={screenWidth - 56} height={220} yAxisLabel="" chartConfig={chartConfig} verticalLabelRotation={30} fromZero />
+        </View>
+
+        {/* Top Transporters Panel */}
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Top Transporters of the Week</Text>
+          {TOP_TRANSPORTERS_WEEK.map((t, index) => (
+            <View key={t.id} style={[styles.transporterRow, t.id === transporter.id && styles.currentUserRow]}>
+              <Text style={styles.rankText}>{index + 1}</Text>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.transporterName}>{t.name}</Text>
+                <Text style={styles.transporterDeliveries}>{t.deliveries} deliveries</Text>
+              </View>
+              <View style={styles.ratingContainer}>
+                {[...Array(5)].map((_, i) => (
+                  <Ionicons
+                    key={i}
+                    name="star"
+                    size={16}
+                    color={i < Math.round(t.rating) ? "#ffc107" : "#e0e0e0"}
+                  />
+                ))}
+                <Text style={styles.ratingText}>{t.rating.toFixed(1)}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    );
+  };
 
   // RENDERERS
   const renderAvailable = ({ item }) => {
@@ -384,12 +559,95 @@ export default function TransporterHomeScreen({ navigation }) {
     );
   };
 
-  const renderNotif = ({ item }) => (
-    <View style={styles.notificationRow}>
-      <Text style={{ color: "#111", fontWeight: "600" }}>{item.text}</Text>
-      <Text style={{ color: "#777", fontSize: 12 }}>{new Date(item.time).toLocaleTimeString()}</Text>
-    </View>
-  );
+  const renderNotif = ({ item }) => {
+    switch (item.type) {
+      case 'late_queue_check':
+        return (
+          <View style={[styles.notificationRow, { backgroundColor: '#fffbe6' }]}>
+            <Ionicons name="warning-outline" size={24} color="#f59e0b" style={{ marginRight: 10 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: "#92400e", fontWeight: "bold" }}>Delivery Delayed?</Text>
+              <Text style={{ color: "#92400e", marginTop: 4 }}>{item.text}</Text>
+              <View style={{ flexDirection: 'row', marginTop: 12 }}>
+                <TouchableOpacity
+                  style={[styles.notifButton, { backgroundColor: '#16a34a' }]}
+                  onPress={() => handleQueueResponse(item.id, item.parcelId, 'yes')}
+                >
+                  <Text style={styles.notifButtonText}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.notifButton, { backgroundColor: '#dc2626', marginLeft: 10 }]}
+                  onPress={() => handleQueueResponse(item.id, item.parcelId, 'no')}
+                >
+                  <Text style={styles.notifButtonText}>No</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        );
+      case 'map_route':
+        const parcel = myParcels.find(p => p.id === item.parcelId) || parcels.find(p => p.id === item.parcelId);
+        if (!parcel) return null;
+        return (
+          <View style={styles.mapNotificationCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={styles.mapNotifTitle}>New Route Suggested</Text>
+              <Text style={styles.small}>Parcel: {parcel.id}</Text>
+            </View>
+            <Text style={styles.mapNotifSubtitle}>Heavy traffic reported. Consider the alternative route shown in green.</Text>
+
+            {/* Mock Map */}
+            <View style={styles.mapContainer}>
+              {/* Routes */}
+              <View style={styles.originalRoute} />
+              <View style={styles.newRoute} />
+
+              {/* Markers */}
+              <View style={[styles.mapMarker, { top: '80%', left: '10%' }]}>
+                <FontAwesome5 name="warehouse" size={16} color="#fff" />
+                <Text style={styles.markerLabel}>Depot</Text>
+              </View>
+              <View style={[styles.mapMarker, { top: '15%', left: '80%', backgroundColor: '#16a34a' }]}>
+                <Ionicons name="home" size={16} color="#fff" />
+                <Text style={styles.markerLabel}>Buyer</Text>
+              </View>
+              <View style={[styles.mapMarker, { top: '40%', left: '45%', backgroundColor: '#ef4444', width: 24, height: 24, borderRadius: 12 }]}>
+                <Ionicons name="car-crash" size={12} color="#fff" />
+              </View>
+
+              {/* Your Location */}
+              <Animated.View style={[styles.yourLocationMarker, { top: `${100 - (parcel.progress || 5)}%`, left: `${(parcel.progress || 5)}%` }]}>
+                <Ionicons name="bicycle" size={18} color="#fff" />
+              </Animated.View>
+            </View>
+
+            {/* Progress Bar */}
+            <View style={{ marginTop: 12 }}>
+              <Text style={styles.small}>Delivery Progress: {(parcel.progress || 0).toFixed(0)}%</Text>
+              <View style={styles.progressBarBg}>
+                <View style={[styles.progressBarFg, { width: `${Math.min(parcel.progress || 0, 100)}%` }]} />
+              </View>
+            </View>
+          </View>
+        );
+      default: // 'text' notification
+        return (
+          <View style={styles.notificationRow}>
+            <View style={styles.notifIconCircle}>
+              <Ionicons
+                name={item.text.toLowerCase().includes('rated') ? "star-outline" : "information-outline"}
+                size={20}
+                color="#2563eb"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: "#111", fontWeight: "600" }}>{item.text}</Text>
+              <Text style={{ color: "#777", fontSize: 12, marginTop: 2 }}>{new Date(item.time).toLocaleTimeString()}</Text>
+            </View>
+          </View>
+        );
+    }
+  };
 
   const renderHistory = ({ item }) => (
     <View style={styles.card}>
@@ -405,25 +663,27 @@ export default function TransporterHomeScreen({ navigation }) {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f7f9fc" }}>
   {/* HEADER */}
   <View style={styles.header}>
-    <View style={{ flexDirection: "row", alignItems: "center" }}>
-      <TouchableOpacity onPress={() => navigation?.openDrawer?.() || Alert.alert("Menu", "Open menu")}>
-        <Ionicons name="menu" size={26} color="#fff" />
-      </TouchableOpacity>
-      <View style={{ marginLeft: 12 }}>
-        <Text style={styles.headerTitle}>{transporter.name}</Text>
-        <Text style={styles.headerSub}>{transporter.type.toUpperCase()} • Depot {transporter.assignedDepot}</Text>
-      </View>
+    <View style={{ flex: 1 }}>
+      <Text style={styles.headerTitle}>{transporter.name}</Text>
+      <Text style={styles.headerSub}>{transporter.type.toUpperCase()} • Depot {transporter.assignedDepot}</Text>
     </View>
 
     <View style={{ flexDirection: "row", alignItems: "center" }}>
-      <TouchableOpacity onPress={() => Alert.alert("Profile", "Open transporter profile")}>
+      <TouchableOpacity onPress={() => setActiveTab('Profile')} style={{ marginRight: 8 }}>
         <Ionicons name="person-circle" size={34} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={openMenu}>
+        <Ionicons name="ellipsis-vertical" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
   </View>
 
   {/* CONTENT */}
   <View style={{ flex: 1, padding: 12 }}>
+    {activeTab === "Dashboard" && (
+      <DashboardView />
+    )}
+
     {activeTab === "Available" && (
       <FlatList
         data={availableParcelsForMe}
@@ -484,6 +744,7 @@ export default function TransporterHomeScreen({ navigation }) {
 
   <SafeAreaView style={[styles.tabbar, { backgroundColor: "#fff" }]}>
   {[
+    { name: "Dashboard", icon: "stats-chart-outline" },
     { name: "Available", icon: "cube-outline" },
     { name: "My Parcels", icon: "bicycle-outline" },
     { name: "Notifications", icon: "notifications-outline" },
@@ -511,6 +772,29 @@ export default function TransporterHomeScreen({ navigation }) {
     </TouchableOpacity>
   ))}
 </SafeAreaView>
+
+      {/* Slide menu overlay */}
+      {menuVisible && (
+        <View style={styles.menuOverlay}>
+          <TouchableWithoutFeedback onPress={closeMenu}>
+            <View style={styles.overlayBg} />
+          </TouchableWithoutFeedback>
+
+          <Animated.View style={[styles.sideMenu, { transform: [{ translateX: menuAnim }] }]}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleSwitchRole("Buyer")}>
+              <Text style={styles.menuItemText}>Switch to Buyer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleSwitchRole("Seller")}>
+              <Text style={styles.menuItemText}>Switch to Seller</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { borderBottomWidth: 0 }]} 
+              onPress={handleLogout}>
+              <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Logout</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      )}
 
 
 
@@ -654,6 +938,37 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "800" },
   headerSub: { color: "#dbeafe", fontSize: 12 },
 
+  // Dashboard Styles
+  dashboardHeader: { fontSize: 22, fontWeight: 'bold', color: '#1f2937', marginBottom: 16 },
+  statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  statCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 4,
+    elevation: 2,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4,
+  },
+  statValue: { fontSize: 18, fontWeight: 'bold', color: '#2563eb' },
+  statLabel: { fontSize: 12, color: '#6b7280', marginTop: 4 },
+  chartCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+  },
+  chartTitle: { fontSize: 16, fontWeight: 'bold', color: '#374151', marginBottom: 8 },
+  transporterRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  currentUserRow: { backgroundColor: '#eef2ff', marginHorizontal: -16, paddingHorizontal: 16 },
+  rankText: { fontSize: 16, fontWeight: 'bold', color: '#6b7280', width: 20 },
+  transporterName: { fontSize: 15, fontWeight: '600', color: '#1f2937' },
+  transporterDeliveries: { fontSize: 12, color: '#6b7280' },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center' },
+  ratingText: { marginLeft: 6, fontSize: 14, fontWeight: 'bold', color: '#374151' },
+
   tabbar: { flexDirection: "row", backgroundColor: "#fff", elevation: 2 },
   tabItem: { flex: 1, paddingVertical: 12, alignItems: "center" },
   tabActive: { borderBottomWidth: 3, borderBottomColor: "#2563eb" },
@@ -689,7 +1004,27 @@ const styles = StyleSheet.create({
   modalCardLarge: { backgroundColor: "#fff", borderRadius: 12, padding: 16 },
   modalTitle: { fontSize: 18, fontWeight: "800", marginBottom: 6 },
 
-  notificationRow: { backgroundColor: "#fff", padding: 12, borderRadius: 10, marginBottom: 10, elevation: 1 },
+  notificationRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: "#fff", padding: 14, borderRadius: 12, marginBottom: 12, elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 5 },
+  notifIconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  notifButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
+  notifButtonText: { color: '#fff', fontWeight: 'bold' },
+
+  mapNotificationCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6 },
+  mapNotifTitle: { fontSize: 16, fontWeight: 'bold', color: '#1f2937' },
+  mapNotifSubtitle: { fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 12 },
+  mapContainer: { height: 180, backgroundColor: '#dbeafe', borderRadius: 12, overflow: 'hidden', position: 'relative' },
+  mapMarker: { position: 'absolute', width: 32, height: 32, borderRadius: 16, backgroundColor: '#3b82f6', justifyContent: 'center', alignItems: 'center', elevation: 3 },
+  markerLabel: { color: '#fff', fontSize: 8, fontWeight: 'bold', position: 'absolute', bottom: -10 },
+  yourLocationMarker: { position: 'absolute', width: 30, height: 30, borderRadius: 15, backgroundColor: '#2563eb', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff', elevation: 4 },
+  originalRoute: { position: 'absolute', top: '50%', left: '15%', width: '70%', height: 4, backgroundColor: '#ef4444', borderRadius: 2, transform: [{ rotate: '-20deg' }] },
+  newRoute: {
+    position: 'absolute',
+    top: '60%',
+    left: '15%',
+    width: '80%',
+    height: 4,
+    backgroundColor: '#22c55e',
+  },
 
   profileBox: { backgroundColor: "#fff", padding: 16, borderRadius: 12, elevation: 1 },
 
@@ -705,6 +1040,27 @@ const styles = StyleSheet.create({
 
   chatWrap: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 16 },
   chatCard: { backgroundColor: "#fff", borderRadius: 12, padding: 12, maxHeight: "80%" },
+
+  // Menu Styles
+  menuOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 },
+  overlayBg: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.3)" },
+  sideMenu: {
+    position: "absolute",
+    top: 60, // Adjust based on header height
+    right: 10,
+    width: 230,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    zIndex: 1000,
+  },
+  menuItem: { paddingVertical: 14, paddingHorizontal: 14, borderBottomColor: "#f3f4f6", borderBottomWidth: 1 },
+  menuItemText: { fontSize: 16, color: '#374151' },
 
 
   bottomTabbar: {

@@ -1,13 +1,16 @@
 // Header.js
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { View, Text, Image, TouchableOpacity, Modal, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { ThemeContext } from "../context/ThemeContext";
 
 export default function Header({ user, initials, navigation }) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const { theme } = useContext(ThemeContext);
+  const styles = getStyles(theme);
 
   return (
-    <View style={styles.header}>
+    <View style={styles.header} elevation={theme.isDarkMode ? 0 : 4}>
       {/* Logo + App Name */}
       <View style={styles.logoContainer}>
         <Image source={require("../assets/logo.png")} style={styles.logo} />
@@ -27,7 +30,7 @@ export default function Header({ user, initials, navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <Ionicons name="menu" size={28} color="#333" />
+          <Ionicons name="menu" size={28} color={theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -59,34 +62,35 @@ export default function Header({ user, initials, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme) => StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: "#fff",
-    elevation: 4,
+    backgroundColor: theme.card,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
   },
   logoContainer: { flexDirection: "row", alignItems: "center" },
   logo: { width: 40, height: 40, marginRight: 10 },
-  appName: { fontSize: 18, fontWeight: "bold", color: "#333" },
+  appName: { fontSize: 18, fontWeight: "bold", color: theme.text },
   headerActions: { flexDirection: "row", alignItems: "center" },
   profileCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#ddd",
+    backgroundColor: theme.background,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
   },
-  initialsText: { fontSize: 16, fontWeight: "bold", color: "#333" },
+  initialsText: { fontSize: 16, fontWeight: "bold", color: theme.text },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.3)",
@@ -94,13 +98,13 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   hamburgerMenu: {
-    marginTop: 50,
+    marginTop: 60, // Pushed down a bit
     marginRight: 15,
-    backgroundColor: "#fff",
+    backgroundColor: theme.card,
     borderRadius: 8,
     elevation: 5,
     padding: 10,
   },
-  menuItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#eee" },
-  menuItemText: { fontSize: 16, color: "#333" },
+  menuItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border },
+  menuItemText: { fontSize: 16, color: theme.text },
 });
